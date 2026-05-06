@@ -5956,7 +5956,7 @@ local config_holder
         avatar_image = library:create("ImageLabel", {
             Parent = playerlist_holder,
             Name = "",
-            Position = dim2(1, -76, 1, 54),
+            Position = dim2(1, -76, 1, -15),
             BorderColor3 = rgb(0, 0, 0),
             Size = dim2(0, 56, 0, 56),
             BorderSizePixel = 0,
