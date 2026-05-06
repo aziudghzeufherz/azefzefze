@@ -66,7 +66,7 @@ local concat = table.concat
 
 -- library init
 local library = {
-    directory = "Atlanta",
+    directory = "Friday",
     folders = {
         "/fonts",
         "/configs",
@@ -1525,7 +1525,7 @@ local config_holder
 
         -- main window
             local main_window = library:panel({
-                name = properties and properties.name or "Atlanta | ", 
+                name = properties and properties.name or "Friday | ", 
                 size = dim2(0, 604, 0, 628),
                 position = dim2(0, (camera.ViewportSize.X / 2) - 302 - 96, 0, (camera.ViewportSize.Y / 2) - 421 - 12),
                 image = "rbxassetid://98823308062942",
@@ -1630,11 +1630,72 @@ local config_holder
                 image = "rbxassetid://115194686863276",
             })
 
-            local watermark = library:watermark({default = os.date('Atlanta |  - %b %d %Y - %H:%M:%S')})  
+            local function get_executor_name()
+                if identifyexecutor then
+                    local ok, exec = pcall(identifyexecutor)
+                    if ok and exec then
+                        return tostring(exec)
+                    end
+                end
+                if getexecutorname then
+                    local ok, exec = pcall(getexecutorname)
+                    if ok and exec then
+                        return tostring(exec)
+                    end
+                end
+                return "Unknown"
+            end
+
+            local function get_ping_text()
+                local ok, network = pcall(function()
+                    return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]
+                end)
+                if ok and network then
+                    local ok_string, ping_string = pcall(function()
+                        return network:GetValueString()
+                    end)
+                    if ok_string and ping_string then
+                        return tostring(ping_string)
+                    end
+                end
+                return "N/A"
+            end
+
+            local function format_uptime(seconds)
+                seconds = math.floor(seconds)
+                local h = math.floor(seconds / 3600)
+                local m = math.floor((seconds % 3600) / 60)
+                local s = seconds % 60
+                return string.format("%02d:%02d:%02d", h, m, s)
+            end
+
+            local watermark = library:watermark({default = "Friday.hvh"})  
 
             task.spawn(function()
+                local run_service = game:GetService("RunService")
+                local started_at = tick()
+                local frames = 0
+                local fps = 0
+                local last_second = tick()
+
+                run_service.RenderStepped:Connect(function()
+                    frames += 1
+                    local now = tick()
+                    if now - last_second >= 1 then
+                        fps = frames
+                        frames = 0
+                        last_second = now
+                    end
+                end)
+
                 while task.wait(1) do 
-                    watermark.change_text(os.date('Atlanta - Beta - %b %d %Y - %H:%M:%S'))
+                    watermark.change_text(string.format(
+                        "Friday.hvh | Version : 2.04 | Executor : %s | FPS : %d | Ping : %s | Uptime : %s",
+                        get_executor_name(),
+                        fps,
+                        get_ping_text(),
+                        format_uptime(tick() - started_at)
+                    ))
                 end 
             end) 
 
@@ -5571,8 +5632,6 @@ local config_holder
         }
 
         local selected_button; 
-        local avatar_image
-        local avatar_request_id = 0
 
         local patterns = {
             ["Priority"] = rgb(255, 255, 0),
@@ -5862,23 +5921,6 @@ local config_holder
                     cfg.labels.uid.set("User Id: " .. players[player_name.Text].UserId)
                 end
 
-                if avatar_image then
-                    avatar_request_id += 1
-                    local request_id = avatar_request_id
-                    avatar_image.Image = ""
-
-                    local selected_player = players[player_name.Text]
-                    if selected_player and selected_player.UserId then
-                        task.spawn(function()
-                            pcall(function()
-                                local image = players:GetUserThumbnailAsync(selected_player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
-                                if avatar_image and request_id == avatar_request_id then
-                                    avatar_image.Image = image
-                                end
-                            end)
-                        end)
-                    end
-                end
             end)
 
             return path 
@@ -5912,10 +5954,6 @@ local config_holder
                     cfg.labels.uid.set("User Id: ??")
                 end
 
-                if avatar_image then
-                    avatar_request_id += 1
-                    avatar_image.Image = ""
-                end
             end
         end 
 
@@ -5952,18 +5990,6 @@ local config_holder
         cfg.labels.name = self:label({name = "Name: ??"})
         cfg.labels.display = self:label({name = "Display Name: ??"})
         cfg.labels.uid = self:label({name = "User Id: ??"})
-
-        avatar_image = library:create("ImageLabel", {
-            Parent = playerlist_holder,
-            Name = "",
-            Position = dim2(1, -76, 1, -58),
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(0, 56, 0, 56),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            ScaleType = Enum.ScaleType.Fit,
-            Image = ""
-        })
 
         return setmetatable(cfg, library)
     end 
