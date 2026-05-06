@@ -3445,675 +3445,184 @@ local config_holder
     
     function library:colorpicker(options)
         local parent = self.right_holder
-
         local cfg = {
             name = options.name or "Color",
             flag = options.flag or tostring(2^789),
             color = options.color or color(1, 1, 1),
             alpha = options.alpha or 1,
-            callback = options.callback or function() end,
-            right_holder = self.right_holder,
+            callback = options.callback or function() end
         }
 
-        local dragging_sat = false
-        local dragging_hue = false
-        local dragging_alpha = false
-        local current_page = "picking"
-        local animation_mode = "--"
         local h, s, v = cfg.color:ToHSV()
         local a = cfg.alpha
+        local open = false
+        local current_page = "Picking"
+        local animation_mode = "--"
+        local dragging_sat, dragging_hue, dragging_alpha = false, false, false
 
-        local colorpicker_button = library:create("TextButton", {
-            Parent = parent,
-            Name = "outline",
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(0, 24, 0, 14),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            Text = "",
-            AutoButtonColor = false,
-        }) library:apply_theme(colorpicker_button, "outline", "BackgroundColor3")
+        local button = library:create("TextButton", {
+            Parent = parent, Size = dim2(0, 24, 0, 14), Text = "", AutoButtonColor = false,
+            BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline
+        }) library:apply_theme(button, "outline", "BackgroundColor3")
 
-        local inline = library:create("Frame", {
-            Parent = colorpicker_button,
-            Name = "inline",
-            ZIndex = 2,
-            Position = dim2(0, 1, 0, 1),
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.inline
-        }) library:apply_theme(inline, "inline", "BackgroundColor3")
+        local button_inline = library:create("Frame", {
+            Parent = button, Position = dim2(0, 1, 0, 1), Size = dim2(1, -2, 1, -2),
+            BorderSizePixel = 0, BackgroundColor3 = themes.preset.inline
+        }) library:apply_theme(button_inline, "inline", "BackgroundColor3")
 
-        local handler = library:create("Frame", {
-            Parent = inline,
-            Name = "handler",
-            ZIndex = 2,
-            Position = dim2(0, 1, 0, 1),
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(250, 165, 27)
+        local button_color = library:create("Frame", {
+            Parent = button_inline, Position = dim2(0, 1, 0, 1), Size = dim2(1, -2, 1, -2),
+            BorderSizePixel = 0, BackgroundColor3 = cfg.color
         })
-
-        library:hoverify(colorpicker_button, colorpicker_button)
-
         library:create("UIGradient", {
-            Parent = handler,
-            Rotation = 90,
-            Color = rgbseq{
-                rgbkey(0, rgb(255, 255, 255)),
-                rgbkey(1, rgb(167, 167, 167))
-            }
+            Parent = button_color, Rotation = 90, Color = rgbseq{rgbkey(0, rgb(255,255,255)), rgbkey(1, rgb(167,167,167))}
         })
 
-        local colorpicker_holder = library:create("Frame", {
-            Parent = sgui,
-            Name = "colorpicker",
-            Position = dim2(0, colorpicker_button.AbsolutePosition.X + 1, 0, colorpicker_button.AbsolutePosition.Y + 17),
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(0, 230, 0, 250),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            Visible = false,
-            ZIndex = 1
-        }) library:apply_theme(colorpicker_holder, "outline", "BackgroundColor3")
+        local holder = library:create("Frame", {
+            Parent = sgui, Visible = false, Size = dim2(0, 230, 0, 206), BorderSizePixel = 0,
+            BackgroundColor3 = themes.preset.outline, Position = dim2(0, button.AbsolutePosition.X + 1, 0, button.AbsolutePosition.Y + 17)
+        }) library:apply_theme(holder, "outline", "BackgroundColor3")
 
-        library:make_resizable(colorpicker_holder)
+        local holder_inline = library:create("Frame", {
+            Parent = holder, Position = dim2(0, 1, 0, 1), Size = dim2(1, -2, 1, -2), BorderSizePixel = 0, BackgroundColor3 = themes.preset.inline
+        }) library:apply_theme(holder_inline, "inline", "BackgroundColor3")
 
-        local window_inline = library:create("Frame", {
-            Parent = colorpicker_holder,
-            Name = "window_inline",
-            Position = dim2(0, 1, 0, 1),
-            BorderColor3 = rgb(0, 0, 0),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.accent
-        }) library:apply_theme(window_inline, "accent", "BackgroundColor3")
-
-        local window_holder = library:create("Frame", {
-            Parent = window_inline,
-            Name = "window_holder",
-            Position = dim2(0, 1, 0, 1),
-            BorderColor3 = themes.preset.outline,
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-
-        local holder_gradient = library:create("UIGradient", {
-            Parent = window_holder,
-            Rotation = 90,
-            Name = "_",
-            Color = rgbseq{
-                rgbkey(0, rgb(41, 41, 55)),
-                rgbkey(1, rgb(35, 35, 47))
-            }
-        }) library:apply_theme(holder_gradient, "contrast", "Color")
-
-        local title = library:create("TextLabel", {
-            Parent = window_holder,
-            FontFace = library.font,
-            TextColor3 = themes.preset.text,
-            BorderColor3 = rgb(0, 0, 0),
-            Text = cfg.name,
-            Name = "text",
-            BackgroundTransparency = 1,
-            Position = dim2(0, 4, 0, 4),
-            BorderSizePixel = 0,
-            AutomaticSize = Enum.AutomaticSize.XY,
-            TextSize = 12,
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-        library:create("UIStroke", { Parent = title, LineJoinMode = Enum.LineJoinMode.Miter })
-
-        local tabs_holder = library:create("Frame", {
-            Parent = window_holder,
-            Name = "tabs_holder",
-            Position = dim2(0, 4, 0, 22),
-            Size = dim2(1, -8, 0, 18),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.inline
-        }) library:apply_theme(tabs_holder, "inline", "BackgroundColor3")
-
-        local tabs_list = library:create("UIListLayout", {
-            Parent = tabs_holder,
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Left,
-            VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = dim(0, 4),
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
-
-        local pages_holder = library:create("Frame", {
-            Parent = window_holder,
-            Name = "pages_holder",
-            Position = dim2(0, 4, 0, 44),
-            Size = dim2(1, -8, 1, -50),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.inline
-        }) library:apply_theme(pages_holder, "inline", "BackgroundColor3")
-
-        local picking_page = library:create("Frame", {
-            Parent = pages_holder,
-            Name = "picking_page",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            Visible = true
-        })
-
-        local lerping_page = library:create("Frame", {
-            Parent = pages_holder,
-            Name = "lerping_page",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            Visible = false
-        })
-
-        local colors_page = library:create("Frame", {
-            Parent = pages_holder,
-            Name = "colors_page",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            Visible = false
-        })
-
-        local function make_tab(name)
-            local button = library:create("TextButton", {
-                Parent = tabs_holder,
-                Name = name,
-                Size = dim2(0, 65, 1, 0),
-                BackgroundColor3 = themes.preset.low_contrast,
-                BorderSizePixel = 0,
-                FontFace = library.font,
-                Text = name,
-                TextSize = 12,
-                TextColor3 = themes.preset.text,
-                AutoButtonColor = false
-            })
-            library:apply_theme(button, "low_contrast", "BackgroundColor3")
-            library:apply_theme(button, "text", "TextColor3")
+        local pages = {}
+        local tabs = {}
+        local tab_lines = {}
+        local tab_names = {"Picking", "Lerping", "Colors"}
+        for i, name in ipairs(tab_names) do
+            local tab = library:create("TextButton", {
+                Parent = holder_inline, Text = name, FontFace = library.font, TextSize = 12, AutoButtonColor = false,
+                TextColor3 = themes.preset.text, BorderSizePixel = 0, BackgroundTransparency = 1,
+                Position = dim2(0, 8 + ((i - 1) * 70), 0, 8), Size = dim2(0, 64, 0, 14)
+            }) library:apply_theme(tab, "text", "TextColor3")
             local line = library:create("Frame", {
-                Parent = button,
-                Name = "line",
-                Position = dim2(0, 8, 1, -1),
-                Size = dim2(1, -16, 0, 1),
-                BorderSizePixel = 0,
-                BackgroundColor3 = themes.preset.outline
+                Parent = holder_inline, Position = dim2(0, 14 + ((i - 1) * 70), 0, 22), Size = dim2(0, 52, 0, 1),
+                BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline
             }) library:apply_theme(line, "outline", "BackgroundColor3")
-            return button, line
+            tabs[name], tab_lines[name] = tab, line
         end
 
-        local tab_picking, line_picking = make_tab("Picking")
-        local tab_lerping, line_lerping = make_tab("Lerping")
-        local tab_colors, line_colors = make_tab("Colors")
+        for _, name in ipairs(tab_names) do
+            pages[name] = library:create("Frame", {
+                Parent = holder_inline, Position = dim2(0, 8, 0, 28), Size = dim2(1, -16, 1, -36),
+                BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline, Visible = name == "Picking"
+            }) library:apply_theme(pages[name], "outline", "BackgroundColor3")
+            local pin = library:create("Frame", {
+                Parent = pages[name], Position = dim2(0, 1, 0, 1), Size = dim2(1, -2, 1, -2),
+                BorderSizePixel = 0, BackgroundColor3 = themes.preset.inline
+            }) library:apply_theme(pin, "inline", "BackgroundColor3")
+        end
+
+        local pick_inner = pages["Picking"]:FindFirstChildOfClass("Frame")
+        local sv = library:create("Frame", {
+            Parent = pick_inner, Position = dim2(0, 6, 0, 6), Size = dim2(1, -12, 1, -38), BorderSizePixel = 0, BackgroundColor3 = rgb(255,0,0)
+        })
+        local sat = library:create("TextButton", {Parent = sv, Size = dim2(1,0,1,0), Text = "", AutoButtonColor = false, BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+        local val = library:create("TextButton", {Parent = sv, Size = dim2(1,0,1,0), Text = "", AutoButtonColor = false, BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+        library:create("UIGradient", {Parent = sat, Rotation = 270, Transparency = numseq{numkey(0,0), numkey(1,1)}, Color = rgbseq{rgbkey(0, rgb(0,0,0)), rgbkey(1, rgb(0,0,0))}})
+        library:create("UIGradient", {Parent = val, Transparency = numseq{numkey(0,0), numkey(1,1)}})
+        local sv_picker = library:create("Frame", {Parent = sv, Size = dim2(0,2,0,2), BorderSizePixel = 1, BackgroundColor3 = rgb(255,255,255), ZIndex = 5})
+
+        local hue = library:create("TextButton", {Parent = pick_inner, Position = dim2(0,6,1,-28), Size = dim2(1,-12,0,10), Text = "", AutoButtonColor = false, BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline})
+        local hue_i = library:create("Frame", {Parent = hue, Position = dim2(0,1,0,1), Size = dim2(1,-2,1,-2), BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+        library:create("UIGradient", {Parent = hue_i, Color = rgbseq{
+            rgbkey(0, rgb(255,0,0)), rgbkey(0.17, rgb(255,255,0)), rgbkey(0.33, rgb(0,255,0)),
+            rgbkey(0.5, rgb(0,255,255)), rgbkey(0.67, rgb(0,0,255)), rgbkey(0.83, rgb(255,0,255)), rgbkey(1, rgb(255,0,0))
+        }})
+        local hue_picker = library:create("Frame", {Parent = hue_i, Size = dim2(0,3,1,0), BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+
+        local alpha = library:create("TextButton", {Parent = pick_inner, Position = dim2(0,6,1,-15), Size = dim2(1,-12,0,10), Text = "", AutoButtonColor = false, BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline})
+        local alpha_i = library:create("Frame", {Parent = alpha, Position = dim2(0,1,0,1), Size = dim2(1,-2,1,-2), BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+        local alpha_check = library:create("ImageLabel", {Parent = alpha_i, BackgroundTransparency = 1, BorderSizePixel = 0, Image = "rbxassetid://18274452449", ScaleType = Enum.ScaleType.Tile, TileSize = dim2(0,6,0,6), Size = dim2(1,0,1,0)})
+        library:create("UIGradient", {Parent = alpha_check, Transparency = numseq{numkey(0,0), numkey(1,1)}})
+        local alpha_picker = library:create("Frame", {Parent = alpha_i, Size = dim2(0,3,1,0), BorderSizePixel = 0, BackgroundColor3 = rgb(255,255,255)})
+
+        local lerp_inner = pages["Lerping"]:FindFirstChildOfClass("Frame")
+        local anim_label = library:create("TextLabel", {
+            Parent = lerp_inner, Position = dim2(0, 6, 0, 6), Size = dim2(0, 64, 0, 12), BackgroundTransparency = 1,
+            Text = "Animation", FontFace = library.font, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = themes.preset.text
+        }) library:apply_theme(anim_label, "text", "TextColor3")
+        local anim_dd = library:create("TextButton", {
+            Parent = lerp_inner, Position = dim2(0, 74, 0, 6), Size = dim2(1, -80, 0, 12), BorderSizePixel = 0,
+            BackgroundColor3 = themes.preset.outline, AutoButtonColor = false, Text = "--", FontFace = library.font, TextSize = 12, TextColor3 = themes.preset.text
+        }) library:apply_theme(anim_dd, "outline", "BackgroundColor3")
+        local anim_menu = library:create("Frame", {
+            Parent = lerp_inner, Position = dim2(0, 74, 0, 20), Size = dim2(1, -80, 0, 28), BorderSizePixel = 0,
+            BackgroundColor3 = themes.preset.outline, Visible = false
+        }) library:apply_theme(anim_menu, "outline", "BackgroundColor3")
+        local anim_menu_i = library:create("Frame", {Parent = anim_menu, Position = dim2(0,1,0,1), Size = dim2(1,-2,1,-2), BorderSizePixel = 0, BackgroundColor3 = themes.preset.inline})
+        local anim_r = library:create("TextButton", {Parent = anim_menu_i, Text = "Rainbow", Position = dim2(0,0,0,0), Size = dim2(1,0,0,13), BorderSizePixel = 0, BackgroundTransparency = 1, AutoButtonColor = false, FontFace = library.font, TextSize = 12, TextColor3 = themes.preset.text, TextXAlignment = Enum.TextXAlignment.Left})
+        local anim_f = library:create("TextButton", {Parent = anim_menu_i, Text = "Fade Alpha", Position = dim2(0,0,0,14), Size = dim2(1,0,0,13), BorderSizePixel = 0, BackgroundTransparency = 1, AutoButtonColor = false, FontFace = library.font, TextSize = 12, TextColor3 = themes.preset.text, TextXAlignment = Enum.TextXAlignment.Left})
+        library:create("UIPadding", {Parent = anim_r, PaddingLeft = dim(0,4)})
+        library:create("UIPadding", {Parent = anim_f, PaddingLeft = dim(0,4)})
+        local copy_btn = library:create("TextButton", {Parent = lerp_inner, Position = dim2(0,6,0,24), Size = dim2(0.5,-8,0,12), BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline, AutoButtonColor = false, Text = "Copy", FontFace = library.font, TextSize = 12, TextColor3 = themes.preset.text})
+        local paste_btn = library:create("TextButton", {Parent = lerp_inner, Position = dim2(0.5,2,0,24), Size = dim2(0.5,-8,0,12), BorderSizePixel = 0, BackgroundColor3 = themes.preset.outline, AutoButtonColor = false, Text = "Paste", FontFace = library.font, TextSize = 12, TextColor3 = themes.preset.text})
+        library:apply_theme(copy_btn, "outline", "BackgroundColor3")
+        library:apply_theme(paste_btn, "outline", "BackgroundColor3")
+
+        local colors_inner = pages["Colors"]:FindFirstChildOfClass("Frame")
+        local rgb_text = library:create("TextLabel", {Parent = colors_inner, Position = dim2(0,6,0,6), Size = dim2(1,-12,0,12), BackgroundTransparency = 1, FontFace = library.font, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = themes.preset.text, Text = "RGB: 255, 255, 255"})
+        local hsv_text = library:create("TextLabel", {Parent = colors_inner, Position = dim2(0,6,0,20), Size = dim2(1,-12,0,12), BackgroundTransparency = 1, FontFace = library.font, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = themes.preset.text, Text = "HSV: 0.00, 0.00, 0.00"})
+        local hex_text = library:create("TextLabel", {Parent = colors_inner, Position = dim2(0,6,0,34), Size = dim2(1,-12,0,12), BackgroundTransparency = 1, FontFace = library.font, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = themes.preset.text, Text = "HEX: #FFFFFF"})
+        local alpha_text = library:create("TextLabel", {Parent = colors_inner, Position = dim2(0,6,0,48), Size = dim2(1,-12,0,12), BackgroundTransparency = 1, FontFace = library.font, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = themes.preset.text, Text = "ALPHA: 1.00"})
+        library:apply_theme(rgb_text, "text", "TextColor3")
+        library:apply_theme(hsv_text, "text", "TextColor3")
+        library:apply_theme(hex_text, "text", "TextColor3")
+        library:apply_theme(alpha_text, "text", "TextColor3")
 
         local function set_page(name)
             current_page = name
-            picking_page.Visible = name == "picking"
-            lerping_page.Visible = name == "lerping"
-            colors_page.Visible = name == "colors"
-
-            line_picking.BackgroundColor3 = name == "picking" and themes.preset.accent or themes.preset.outline
-            line_lerping.BackgroundColor3 = name == "lerping" and themes.preset.accent or themes.preset.outline
-            line_colors.BackgroundColor3 = name == "colors" and themes.preset.accent or themes.preset.outline
-        end
-
-        tab_picking.MouseButton1Click:Connect(function() set_page("picking") end)
-        tab_lerping.MouseButton1Click:Connect(function() set_page("lerping") end)
-        tab_colors.MouseButton1Click:Connect(function() set_page("colors") end)
-
-        local satval_picker = library:create("Frame", {
-            Parent = picking_page,
-            Name = "satval_picker",
-            Position = dim2(0, 4, 0, 4),
-            Size = dim2(1, -8, 1, -62),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline
-        }) library:apply_theme(satval_picker, "outline", "BackgroundColor3")
-
-        local colorpicker = library:create("Frame", {
-            Parent = satval_picker,
-            Name = "colorpicker",
-            Position = dim2(0, 1, 0, 1),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 0, 0)
-        })
-
-        local sat = library:create("TextButton", {
-            Parent = colorpicker,
-            Name = "sat",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 255, 255),
-            Text = "",
-            AutoButtonColor = false,
-        })
-
-        library:create("UIGradient", {
-            Parent = sat,
-            Rotation = 270,
-            Transparency = numseq{ numkey(0, 0), numkey(1, 1) },
-            Color = rgbseq{ rgbkey(0, rgb(0, 0, 0)), rgbkey(1, rgb(0, 0, 0)) }
-        })
-
-        local val = library:create("TextButton", {
-            Parent = colorpicker,
-            Name = "val",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 255, 255),
-            Text = "",
-            AutoButtonColor = false,
-        })
-
-        library:create("UIGradient", {
-            Parent = val,
-            Transparency = numseq{ numkey(0, 0), numkey(1, 1) }
-        })
-
-        local satval_picker_real = library:create("Frame", {
-            Parent = colorpicker,
-            Name = "satval_picker_real",
-            Size = dim2(0, 2, 0, 2),
-            BorderSizePixel = 1,
-            BackgroundColor3 = rgb(255, 255, 255),
-            ZIndex = 3,
-        })
-
-        local hue = library:create("TextButton", {
-            Parent = picking_page,
-            Name = "hue",
-            Position = dim2(0, 4, 1, -54),
-            Size = dim2(1, -8, 0, 14),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            Text = "",
-            AutoButtonColor = false
-        }) library:apply_theme(hue, "outline", "BackgroundColor3")
-
-        local hue_frame = library:create("Frame", {
-            Parent = hue,
-            Position = dim2(0, 1, 0, 1),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-
-        library:create("UIGradient", {
-            Parent = hue_frame,
-            Rotation = 0,
-            Color = rgbseq{
-                rgbkey(0, rgb(255, 0, 0)),
-                rgbkey(0.17, rgb(255, 255, 0)),
-                rgbkey(0.33, rgb(0, 255, 0)),
-                rgbkey(0.5, rgb(0, 255, 255)),
-                rgbkey(0.67, rgb(0, 0, 255)),
-                rgbkey(0.83, rgb(255, 0, 255)),
-                rgbkey(1, rgb(255, 0, 0))
-            }
-        })
-
-        local hue_picker = library:create("Frame", {
-            Parent = hue_frame,
-            Name = "hue_picker",
-            BorderMode = Enum.BorderMode.Inset,
-            Size = dim2(0, 4, 1, 0),
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-
-        local alpha = library:create("TextButton", {
-            Parent = picking_page,
-            Name = "alpha",
-            Position = dim2(0, 4, 1, -36),
-            Size = dim2(1, -8, 0, 14),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            Text = "",
-            AutoButtonColor = false,
-        }) library:apply_theme(alpha, "outline", "BackgroundColor3")
-
-        local alpha_drag = library:create("Frame", {
-            Parent = alpha,
-            Name = "alpha_drag",
-            Position = dim2(0, 1, 0, 1),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-
-        local alphaind = library:create("ImageLabel", {
-            Parent = alpha_drag,
-            ScaleType = Enum.ScaleType.Tile,
-            Image = "rbxassetid://18274452449",
-            BackgroundTransparency = 1,
-            Name = "alphaind",
-            Size = dim2(1, 0, 1, 0),
-            TileSize = dim2(0, 6, 0, 6),
-            BorderSizePixel = 0,
-        })
-
-        library:create("UIGradient", {
-            Parent = alphaind,
-            Transparency = numseq{ numkey(0, 0), numkey(1, 1) }
-        })
-
-        local alpha_picker = library:create("Frame", {
-            Parent = alpha_drag,
-            Name = "alpha_picker",
-            BorderMode = Enum.BorderMode.Inset,
-            Size = dim2(0, 4, 1, 0),
-            BackgroundColor3 = rgb(255, 255, 255)
-        })
-
-        local rainbow_label = library:create("TextLabel", {
-            Parent = lerping_page,
-            FontFace = library.font,
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            BackgroundTransparency = 1,
-            Position = dim2(0, 4, 0, 6),
-            Size = dim2(1, -8, 0, 12),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "Animation"
-        }) library:apply_theme(rainbow_label, "text", "TextColor3")
-
-        local animation_outline = library:create("Frame", {
-            Parent = lerping_page,
-            Name = "animation_outline",
-            Position = dim2(0, 82, 0, 6),
-            Size = dim2(1, -86, 0, 14),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline
-        }) library:apply_theme(animation_outline, "outline", "BackgroundColor3")
-
-        local animation_inline = library:create("Frame", {
-            Parent = animation_outline,
-            Name = "animation_inline",
-            Position = dim2(0, 1, 0, 1),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.inline
-        }) library:apply_theme(animation_inline, "inline", "BackgroundColor3")
-
-        local animation_button = library:create("TextButton", {
-            Parent = animation_inline,
-            Name = "animation_button",
-            Size = dim2(1, 0, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            FontFace = library.font,
-            Text = "--",
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            AutoButtonColor = false
-        }) library:apply_theme(animation_button, "text", "TextColor3")
-
-        library:create("UIPadding", {
-            Parent = animation_button,
-            PaddingLeft = dim(0, 4),
-            PaddingRight = dim(0, 12)
-        })
-
-        local dropdown_arrow = library:create("TextLabel", {
-            Parent = animation_inline,
-            Name = "dropdown_arrow",
-            AnchorPoint = vec2(1, 0),
-            Position = dim2(1, -3, 0, 0),
-            Size = dim2(0, 8, 1, 0),
-            BackgroundTransparency = 1,
-            FontFace = library.font,
-            Text = "v",
-            TextSize = 10,
-            TextColor3 = themes.preset.text
-        }) library:apply_theme(dropdown_arrow, "text", "TextColor3")
-
-        local animation_menu = library:create("Frame", {
-            Parent = lerping_page,
-            Name = "animation_menu",
-            Position = dim2(0, 82, 0, 22),
-            Size = dim2(1, -86, 0, 32),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            Visible = false
-        }) library:apply_theme(animation_menu, "outline", "BackgroundColor3")
-
-        local animation_menu_inline = library:create("Frame", {
-            Parent = animation_menu,
-            Name = "animation_menu_inline",
-            Position = dim2(0, 1, 0, 1),
-            Size = dim2(1, -2, 1, -2),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.inline
-        }) library:apply_theme(animation_menu_inline, "inline", "BackgroundColor3")
-
-        local rainbow_option = library:create("TextButton", {
-            Parent = animation_menu_inline,
-            Name = "rainbow_option",
-            Position = dim2(0, 0, 0, 0),
-            Size = dim2(1, 0, 0, 15),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            FontFace = library.font,
-            Text = "Rainbow",
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            AutoButtonColor = false
-        }) library:apply_theme(rainbow_option, "text", "TextColor3")
-
-        library:create("UIPadding", { Parent = rainbow_option, PaddingLeft = dim(0, 4) })
-
-        local fade_option = library:create("TextButton", {
-            Parent = animation_menu_inline,
-            Name = "fade_option",
-            Position = dim2(0, 0, 0, 16),
-            Size = dim2(1, 0, 0, 15),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1,
-            FontFace = library.font,
-            Text = "Fade Alpha",
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            AutoButtonColor = false
-        }) library:apply_theme(fade_option, "text", "TextColor3")
-
-        library:create("UIPadding", { Parent = fade_option, PaddingLeft = dim(0, 4) })
-
-        local actions_holder = library:create("Frame", {
-            Parent = lerping_page,
-            Name = "actions_holder",
-            Position = dim2(0, 4, 0, 28),
-            Size = dim2(1, -8, 0, 14),
-            BorderSizePixel = 0,
-            BackgroundTransparency = 1
-        })
-
-        local copy_button = library:create("TextButton", {
-            Parent = actions_holder,
-            Name = "copy_button",
-            Position = dim2(0, 0, 0, 0),
-            Size = dim2(0.5, -2, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            FontFace = library.font,
-            Text = "Copy",
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            AutoButtonColor = false
-        }) library:apply_theme(copy_button, "outline", "BackgroundColor3")
-
-        local paste_button = library:create("TextButton", {
-            Parent = actions_holder,
-            Name = "paste_button",
-            Position = dim2(0.5, 2, 0, 0),
-            Size = dim2(0.5, -2, 1, 0),
-            BorderSizePixel = 0,
-            BackgroundColor3 = themes.preset.outline,
-            FontFace = library.font,
-            Text = "Paste",
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            AutoButtonColor = false
-        }) library:apply_theme(paste_button, "outline", "BackgroundColor3")
-
-        animation_button.MouseButton1Click:Connect(function()
-            animation_menu.Visible = not animation_menu.Visible
-        end)
-
-        local function set_animation_mode(mode_text)
-            animation_mode = mode_text
-            animation_button.Text = mode_text
-            animation_menu.Visible = false
-            flags[cfg.flag .. "_RAINBOW_FLAG"] = mode_text == "Rainbow"
-            flags[cfg.flag .. "_FADE_ALPHA_FLAG"] = mode_text == "Fade Alpha"
-        end
-
-        rainbow_option.MouseButton1Click:Connect(function()
-            set_animation_mode("Rainbow")
-        end)
-        fade_option.MouseButton1Click:Connect(function()
-            set_animation_mode("Fade Alpha")
-        end)
-
-        copy_button.MouseButton1Click:Connect(function()
-            library.copied_flag = flags[cfg.flag]
-            library.copied_animation = animation_mode
-        end)
-
-        paste_button.MouseButton1Click:Connect(function()
-            if library.copied_flag then
-                cfg.set(library.copied_flag.Color, library.copied_flag.Transparency)
-                set_animation_mode(library.copied_animation or "--")
+            for _, n in ipairs(tab_names) do
+                pages[n].Visible = (n == name)
+                tab_lines[n].BackgroundColor3 = (n == name) and themes.preset.accent or themes.preset.outline
             end
-        end)
+        end
 
-        local color_preview = library:create("Frame", {
-            Parent = colors_page,
-            Position = dim2(0, 4, 0, 4),
-            Size = dim2(0, 48, 0, 48),
-            BorderSizePixel = 0,
-            BackgroundColor3 = cfg.color
-        })
+        local function set_animation(mode)
+            animation_mode = mode
+            anim_dd.Text = mode
+            anim_menu.Visible = false
+        end
 
-        local rgb_text = library:create("TextLabel", {
-            Parent = colors_page,
-            FontFace = library.font,
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            BackgroundTransparency = 1,
-            Position = dim2(0, 58, 0, 6),
-            Size = dim2(1, -62, 0, 12),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "RGB: 255, 255, 255"
-        }) library:apply_theme(rgb_text, "text", "TextColor3")
-
-        local hsv_text = library:create("TextLabel", {
-            Parent = colors_page,
-            FontFace = library.font,
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            BackgroundTransparency = 1,
-            Position = dim2(0, 58, 0, 22),
-            Size = dim2(1, -62, 0, 12),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "HSV: 0.00, 0.00, 0.00"
-        }) library:apply_theme(hsv_text, "text", "TextColor3")
-
-        local hex_text = library:create("TextLabel", {
-            Parent = colors_page,
-            FontFace = library.font,
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            BackgroundTransparency = 1,
-            Position = dim2(0, 58, 0, 38),
-            Size = dim2(1, -62, 0, 12),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "HEX: #FFFFFF"
-        }) library:apply_theme(hex_text, "text", "TextColor3")
-
-        local alpha_text = library:create("TextLabel", {
-            Parent = colors_page,
-            FontFace = library.font,
-            TextSize = 12,
-            TextColor3 = themes.preset.text,
-            BackgroundTransparency = 1,
-            Position = dim2(0, 4, 0, 58),
-            Size = dim2(1, -8, 0, 12),
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = "ALPHA: 1.00"
-        }) library:apply_theme(alpha_text, "text", "TextColor3")
-
-        function cfg.set_visible(bool)
-            colorpicker_holder.Visible = bool
-            if bool then
+        function cfg.set_visible(state)
+            holder.Visible = state
+            if state then
                 if library.current_element_open and library.current_element_open ~= cfg then
                     library.current_element_open.set_visible(false)
                     library.current_element_open.open = false
                 end
                 library.current_element_open = cfg
-                colorpicker_holder.Position = dim2(0, colorpicker_button.AbsolutePosition.X + 1, 0, colorpicker_button.AbsolutePosition.Y + 17)
+                holder.Position = dim2(0, button.AbsolutePosition.X + 1, 0, button.AbsolutePosition.Y + 17)
             end
         end
 
-        colorpicker_button.MouseButton1Click:Connect(function()
-            cfg.open = not cfg.open
-            cfg.set_visible(cfg.open)
-        end)
-
         function cfg.set(set_color, set_alpha)
-            if set_color then
-                h, s, v = set_color:ToHSV()
-            end
-            if set_alpha ~= nil then
-                a = math.clamp(set_alpha, 0, 1)
-            end
-
+            if set_color then h, s, v = set_color:ToHSV() end
+            if set_alpha ~= nil then a = math.clamp(set_alpha, 0, 1) end
             local clr = Color3.fromHSV(h, s, v)
-            cfg.color = clr
-            cfg.alpha = a
-
-            colorpicker.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-            alpha_drag.BackgroundColor3 = clr
-            color_preview.BackgroundColor3 = clr
-            handler.BackgroundColor3 = clr
-
-            local s_offset = s < 1 and 0 or -3
-            local v_offset = (1 - v) < 1 and 0 or -3
-            satval_picker_real.Position = dim2(s, s_offset, 1 - v, v_offset)
-
-            local h_offset = h < 1 and 0 or -4
-            hue_picker.Position = dim2(h, h_offset, 0, 0)
-
-            local a_offset = a < 1 and 0 or -4
-            alpha_picker.Position = dim2(a, a_offset, 0, 0)
-
-            local r = math.floor(clr.R * 255 + 0.5)
-            local g = math.floor(clr.G * 255 + 0.5)
-            local b = math.floor(clr.B * 255 + 0.5)
+            cfg.color, cfg.alpha = clr, a
+            sv.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+            alpha_i.BackgroundColor3 = clr
+            button_color.BackgroundColor3 = clr
+            sv_picker.Position = dim2(s, s < 1 and 0 or -2, 1 - v, (1 - v) < 1 and 0 or -2)
+            hue_picker.Position = dim2(h, h < 1 and 0 or -3, 0, 0)
+            alpha_picker.Position = dim2(a, a < 1 and 0 or -3, 0, 0)
+            local r,g,b = math.floor(clr.R*255+0.5), math.floor(clr.G*255+0.5), math.floor(clr.B*255+0.5)
             rgb_text.Text = string.format("RGB: %d, %d, %d", r, g, b)
             hsv_text.Text = string.format("HSV: %.2f, %.2f, %.2f", h, s, v)
             hex_text.Text = "HEX: #" .. clr:ToHex()
             alpha_text.Text = string.format("ALPHA: %.2f", a)
-
-            flags[cfg.flag] = {
-                Color = clr,
-                Transparency = a
-            }
+            flags[cfg.flag] = {Color = clr, Transparency = a}
             cfg.callback(clr, a)
         end
 
-        function cfg.update_color()
+        local function update_drag()
             local mouse = uis:GetMouseLocation()
             if dragging_sat then
-                s = math.clamp((vec2(mouse.X, mouse.Y - gui_offset) - val.AbsolutePosition).X / val.AbsoluteSize.X, 0, 1)
-                v = 1 - math.clamp((vec2(mouse.X, mouse.Y - gui_offset) - sat.AbsolutePosition).Y / sat.AbsoluteSize.Y, 0, 1)
+                s = math.clamp((vec2(mouse.X, mouse.Y - gui_offset) - sv.AbsolutePosition).X / sv.AbsoluteSize.X, 0, 1)
+                v = 1 - math.clamp((vec2(mouse.X, mouse.Y - gui_offset) - sv.AbsolutePosition).Y / sv.AbsoluteSize.Y, 0, 1)
             elseif dragging_hue then
                 h = math.clamp((vec2(mouse.X, mouse.Y - gui_offset) - hue.AbsolutePosition).X / hue.AbsoluteSize.X, 0, 1)
             elseif dragging_alpha then
@@ -4122,23 +3631,20 @@ local config_holder
             cfg.set(nil, nil)
         end
 
-        alpha.MouseButton1Down:Connect(function() if current_page == "picking" then dragging_alpha = true end end)
-        hue.MouseButton1Down:Connect(function() if current_page == "picking" then dragging_hue = true end end)
-        sat.MouseButton1Down:Connect(function() if current_page == "picking" then dragging_sat = true end end)
-
-        uis.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging_sat = false
-                dragging_hue = false
-                dragging_alpha = false
-            end
-        end)
-
-        uis.InputChanged:Connect(function(input)
-            if (dragging_sat or dragging_hue or dragging_alpha) and input.UserInputType == Enum.UserInputType.MouseMovement then
-                cfg.update_color()
-            end
-        end)
+        button.MouseButton1Click:Connect(function() open = not open; cfg.set_visible(open) end)
+        tabs["Picking"].MouseButton1Click:Connect(function() set_page("Picking") end)
+        tabs["Lerping"].MouseButton1Click:Connect(function() set_page("Lerping") end)
+        tabs["Colors"].MouseButton1Click:Connect(function() set_page("Colors") end)
+        anim_dd.MouseButton1Click:Connect(function() anim_menu.Visible = not anim_menu.Visible end)
+        anim_r.MouseButton1Click:Connect(function() set_animation("Rainbow") end)
+        anim_f.MouseButton1Click:Connect(function() set_animation("Fade Alpha") end)
+        copy_btn.MouseButton1Click:Connect(function() library.copied_flag = flags[cfg.flag]; library.copied_animation = animation_mode end)
+        paste_btn.MouseButton1Click:Connect(function() if library.copied_flag then cfg.set(library.copied_flag.Color, library.copied_flag.Transparency); set_animation(library.copied_animation or "--") end end)
+        sat.MouseButton1Down:Connect(function() dragging_sat = true end)
+        hue.MouseButton1Down:Connect(function() dragging_hue = true end)
+        alpha.MouseButton1Down:Connect(function() dragging_alpha = true end)
+        uis.InputChanged:Connect(function(i) if (dragging_sat or dragging_hue or dragging_alpha) and i.UserInputType == Enum.UserInputType.MouseMovement then update_drag() end end)
+        uis.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging_sat, dragging_hue, dragging_alpha = false, false, false end end)
 
         task.spawn(function()
             while true do
@@ -4151,7 +3657,8 @@ local config_holder
             end
         end)
 
-        set_page("picking")
+        set_page("Picking")
+        set_animation("--")
         cfg.set(cfg.color, cfg.alpha)
         library.config_flags[cfg.flag] = cfg.set
         return setmetatable(cfg, library)
@@ -6096,7 +5603,7 @@ local config_holder
         avatar_image = library:create("ImageLabel", {
             Parent = playerlist_holder,
             Name = "",
-            Position = dim2(1, -76, 1, -94),
+            Position = dim2(1, -76, 1, -58),
             BorderColor3 = rgb(0, 0, 0),
             Size = dim2(0, 56, 0, 56),
             BorderSizePixel = 0,
