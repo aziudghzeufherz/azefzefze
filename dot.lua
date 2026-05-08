@@ -2051,23 +2051,31 @@ local config_holder
             end)
         end 
 
+        local function is_color3(x)
+            if x == nil then return false end
+            local ok, t = pcall(typeof, x)
+            return ok and t == "Color3"
+        end
+
         local function flag_as_color3(key)
-            local v = flags[key]
-            if v == nil then return nil end
-            if typeof(v) == "Color3" then return v end
+            local ok, v = pcall(function()
+                return flags[key]
+            end)
+            if not ok or v == nil then return nil end
+            if is_color3(v) then return v end
             if type(v) == "table" then
                 local c = rawget(v, "Color") or rawget(v, "color")
-                if c ~= nil and typeof(c) == "Color3" then return c end
+                if c ~= nil and is_color3(c) then return c end
             end
             return nil
         end
 
         local function value_as_color3(v)
             if v == nil then return nil end
-            if typeof(v) == "Color3" then return v end
+            if is_color3(v) then return v end
             if type(v) == "table" then
                 local c = rawget(v, "Color") or rawget(v, "color")
-                if c ~= nil and typeof(c) == "Color3" then return c end
+                if c ~= nil and is_color3(c) then return c end
             end
             return nil
         end
