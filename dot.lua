@@ -2924,8 +2924,9 @@ local config_holder
                     Parent = ScrollingFrame,
                     Name = "columns_wrap",
                     BackgroundTransparency = 1,
+                    Visible = false,
                     Size = dim2(1, 0, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
+                    AutomaticSize = Enum.AutomaticSize.None,
                     BorderSizePixel = 0,
                     Position = dim2(0, 0, 0, 0)
                 })
@@ -3099,6 +3100,9 @@ local config_holder
             end
 
             function multi:columns()
+                elements.Visible = false
+                columns_wrap.Visible = true
+                columns_wrap.AutomaticSize = Enum.AutomaticSize.Y
                 local left = setmetatable({ holder = left_elements }, library)
                 local right = setmetatable({ holder = right_elements }, library)
                 return left, right
