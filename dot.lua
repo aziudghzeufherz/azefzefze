@@ -2892,6 +2892,72 @@ local config_holder
                     Name = "",
                     PaddingBottom = dim(0, 60)
                 })
+
+                local columns_wrap = library:create("Frame", {
+                    Parent = ScrollingFrame,
+                    Name = "columns_wrap",
+                    BackgroundTransparency = 1,
+                    Size = dim2(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    Position = dim2(0, 0, 0, 0)
+                })
+
+                local left_column = library:create("Frame", {
+                    Parent = columns_wrap,
+                    Name = "left_column",
+                    BackgroundTransparency = 1,
+                    Position = dim2(0, 0, 0, 0),
+                    Size = dim2(0.5, -2, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0
+                })
+
+                local right_column = library:create("Frame", {
+                    Parent = columns_wrap,
+                    Name = "right_column",
+                    BackgroundTransparency = 1,
+                    Position = dim2(0.5, 2, 0, 0),
+                    Size = dim2(0.5, -2, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0
+                })
+
+                local left_elements = library:create("Frame", {
+                    Parent = left_column,
+                    Name = "left_elements",
+                    BorderColor3 = rgb(0, 0, 0),
+                    Size = dim2(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundTransparency = 1
+                })
+
+                local right_elements = library:create("Frame", {
+                    Parent = right_column,
+                    Name = "right_elements",
+                    BorderColor3 = rgb(0, 0, 0),
+                    Size = dim2(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundTransparency = 1
+                })
+
+                library:create("UIListLayout", {
+                    Parent = left_elements,
+                    Name = "",
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                    Padding = dim(0, 4)
+                })
+
+                library:create("UIListLayout", {
+                    Parent = right_elements,
+                    Name = "",
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                    Padding = dim(0, 4)
+                })
             --
             
             function multi:open_tab(bool) 
@@ -2899,6 +2965,12 @@ local config_holder
                 UIGradient.Rotation = bool and -90 or 90
                 tabb.Size = dim2(0, 0, 1, bool and 1 or 0)
                 text.TextColor3 = bool and themes.preset.accent or themes.preset.text
+            end
+
+            function multi:columns()
+                local left = setmetatable({ holder = left_elements }, library)
+                local right = setmetatable({ holder = right_elements }, library)
+                return left, right
             end
 
             library:connection(tabb.MouseButton1Click, function()
@@ -5619,6 +5691,33 @@ local config_holder
                     
         return setmetatable(cfg, library)   
     end 
+
+    function library:separator(options)
+        options = options or {}
+        local thickness = options.thickness or 1
+        local pad = options.padding or 4
+
+        local wrap = library:create("Frame", {
+            Parent = self.holder,
+            Name = "separator",
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Size = dim2(1, -8, 0, pad * 2 + thickness),
+        })
+
+        local line = library:create("Frame", {
+            Parent = wrap,
+            Name = "",
+            BorderSizePixel = 0,
+            BackgroundColor3 = themes.preset.outline,
+            Size = dim2(1, 0, 0, thickness),
+            Position = dim2(0, 0, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+        })
+        library:apply_theme(line, "outline", "BackgroundColor3")
+
+        return setmetatable({}, library)
+    end
 
     function library:playerlist(options) 
         local cfg = {
