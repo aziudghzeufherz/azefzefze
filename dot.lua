@@ -1993,9 +1993,20 @@ local config_holder
     function library:esp_preview(properties)
         local cfg = {items = {}, rotation = 0; objects = {};}
 
-        lp.Character.Archivable = true
-        local character = lp.Character:Clone()
-        character.Animate:Destroy()
+        local charSrc = lp.Character
+        if not charSrc then
+            function cfg.refresh_elements() end
+            function cfg.change_health() end
+            return setmetatable(cfg, library)
+        end
+        charSrc.Archivable = true
+        local character = charSrc:Clone()
+        local anim = character:FindFirstChild("Animate")
+        if anim then anim:Destroy() end
+        if not character.PrimaryPart then
+            character.PrimaryPart = character:FindFirstChild("HumanoidRootPart")
+                or character:FindFirstChildWhichIsA("BasePart", true)
+        end
 
         local items = cfg.items; do 
             items.viewportframe = library:create( "ViewportFrame" , {
@@ -2006,7 +2017,10 @@ local config_holder
                 ZIndex = 1;
                 Position = dim2(0, 0, 0, 10);
                 BorderSizePixel = 0;
-                BackgroundColor3 = rgb(255, 255, 255)
+                BackgroundColor3 = rgb(255, 255, 255);
+                Ambient = Color3.fromRGB(220, 220, 230);
+                LightColor = Color3.fromRGB(255, 255, 255);
+                LightDirection = Vector3.new(-0.4, -1, -0.5);
             });
             
             items.camera = library:create( "Camera" , {
@@ -2026,9 +2040,46 @@ local config_holder
             library:connection(run.RenderStepped, function()
                 task.wait()
                 cfg.rotation += 0.5
-                character:SetPrimaryPartCFrame(cfr(Vector3.new(0, 1, -6)) * angle(0, math.rad(cfg.rotation), 0))
+                local cf = cfr(Vector3.new(0, 1, -6)) * angle(0, math.rad(cfg.rotation), 0)
+                pcall(function()
+                    if character.PrimaryPart then
+                        character:SetPrimaryPartCFrame(cf)
+                    elseif character.PivotTo then
+                        character:PivotTo(cf)
+                    end
+                end)
             end)
         end 
+
+        local function flag_as_color3(key)
+            local v = flags[key]
+            if v == nil then return nil end
+            if typeof(v) == "Color3" then return v end
+            if type(v) == "table" then
+                local c = rawget(v, "Color") or rawget(v, "color")
+                if c ~= nil and typeof(c) == "Color3" then return c end
+            end
+            return nil
+        end
+
+        local function value_as_color3(v)
+            if v == nil then return nil end
+            if typeof(v) == "Color3" then return v end
+            if type(v) == "table" then
+                local c = rawget(v, "Color") or rawget(v, "color")
+                if c ~= nil and typeof(c) == "Color3" then return c end
+            end
+            return nil
+        end
+
+        local function esp_preview_color(keyList, fallback)
+            fallback = fallback or rgb(255, 255, 255)
+            for _, key in ipairs(keyList) do
+                local c = flag_as_color3(key)
+                if c then return c end
+            end
+            return fallback
+        end
 
         local objects = cfg.objects; do 
             objects[ "holder" ] = library:create( "Frame" , {
@@ -2051,7 +2102,7 @@ local config_holder
             objects[ "name" ] = library:create( "TextLabel" , {
                 FontFace = library.font;
                 Parent = library.cache;
-                TextColor3 = flags["Name_Color"].Color;
+                TextColor3 = esp_preview_color({ "esp_names_rgb", "Name_Color" });
                 BorderColor3 = rgb(0, 0, 0);
                 Text = string.format("%s (@%s)", lp.DisplayName, lp.Name);
                 Name = "\0";
@@ -2128,7 +2179,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, -2);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "2" ] = library:create( "Frame" , {
@@ -2147,7 +2198,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, 1);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "3" ] = library:create( "Frame" , {
@@ -2167,7 +2218,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, -2);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "4" ] = library:create( "Frame" , {
@@ -2187,7 +2238,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, 1);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "5" ] = library:create( "Frame" , {
@@ -2207,7 +2258,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, -2);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "6" ] = library:create( "Frame" , {
@@ -2228,7 +2279,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, 1);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "7" ] = library:create( "Frame" , {
@@ -2248,7 +2299,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, -2);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
                 
                 objects[ "7" ] = library:create( "Frame" , {
@@ -2269,7 +2320,7 @@ local config_holder
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -2, 1, 1);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = flags["Box_Color"].Color
+                    BackgroundColor3 = esp_preview_color({ "esp_box_corner_rgb", "Box_Color" })
                 });
             -- 
             
@@ -2318,9 +2369,9 @@ local config_holder
             --
 
             -- Distance esp
-                objects[ "distance" ] = library:create( "TextLabel" , {
-                    FontFace = library.font;
-                    TextColor3 = flags["Distance_Color"].Color;
+            objects[ "distance" ] = library:create( "TextLabel" , {
+                FontFace = library.font;
+                TextColor3 = esp_preview_color({ "esp_dist_rgb", "Distance_Color" });
                     BorderColor3 = rgb(0, 0, 0);
                     Text = "127st";
                     Parent = library.cache;
@@ -2336,9 +2387,9 @@ local config_holder
             -- 
 
             -- Weapon esp
-                objects[ "weapon" ] = library:create( "TextLabel" , {
-                    FontFace = library.font;
-                    TextColor3 = flags["Weapon_Color"].Color;
+            objects[ "weapon" ] = library:create( "TextLabel" , {
+                FontFace = library.font;
+                TextColor3 = esp_preview_color({ "esp_weapons_rgb", "Weapon_Color" });
                     BorderColor3 = rgb(0, 0, 0);
                     Text = "[ Weapon ]";
                     Parent = library.cache;
@@ -2368,17 +2419,27 @@ local config_holder
         end 
 
         cfg.change_health = function()
-            if flags[ "healthbar_holder" ] and flags[ "healthbar_holder" ].Parent ~= objects[ "holder" ] then 
-                return 
-            end
+            if flags["esp_hpbar"] == false then return end
+            if objects["healthbar_holder"].Parent ~= objects["holder"] then return end
 
             local humanoid = character.Humanoid
             
             local multiplier = humanoid.MaxHealth * math.abs(math.sin(tick() * 2)) / humanoid.MaxHealth
-            local color = flags[ "Health_Low" ].Color:Lerp( flags["Health_High"].Color, multiplier)
+            local color
+            local g1 = flag_as_color3("esp_hpbar_grad1")
+            local g3 = flag_as_color3("esp_hpbar_grad3")
+            local hlo = flag_as_color3("Health_Low")
+            local hhi = flag_as_color3("Health_High")
+            if flags["esp_hpbar_grad"] ~= false and g1 and g3 then
+                color = g1:Lerp(g3, multiplier)
+            elseif hlo and hhi then
+                color = hlo:Lerp(hhi, multiplier)
+            else
+                color = rgb(0, 200, 50)
+            end
             local armorMul = (math.sin(tick() * 1.6) + 1) / 2
-            local armorLow = (flags["Armor_Low"] and flags["Armor_Low"].Color) or rgb(25, 55, 120)
-            local armorHigh = (flags["Armor_High"] and flags["Armor_High"].Color) or rgb(90, 180, 255)
+            local armorLow = flag_as_color3("esp_armorbar_grad1") or flag_as_color3("Armor_Low") or rgb(25, 55, 120)
+            local armorHigh = flag_as_color3("esp_armorbar_grad3") or flag_as_color3("Armor_High") or rgb(90, 180, 255)
             
             objects[ "healthbar" ].Size = UDim2.new(1, -2, multiplier, -2)
             objects[ "healthbar" ].Position = UDim2.new(0, 1, 1 - multiplier, 1)
@@ -2389,72 +2450,94 @@ local config_holder
         end -- wtf why diff func defining
 
         function cfg.refresh_elements( )                                
-            objects.holder.Parent = flags["Enabled"] and items.viewportframe or library.cache
+            local espOn = flags["esp_enabled"] ~= false
+            objects.holder.Parent = espOn and items.viewportframe or library.cache
 
-            local temp = {
-                ["Names"] = objects["name"]; 
-                ["Name_Color"] = {objects["name"]};
-                ["Healthbar"] = objects[ "healthbar_holder" ];
-                ["Armorbar"] = objects[ "armorbar_holder" ];
-                ["Distance"] = objects[ "distance" ];
-                ["Weapon"] = objects[ "weapon" ];
-                ["Distance_Color"] = {objects[ "distance" ]};
-                ["Weapon_Color"] = {objects[ "weapon" ]};
-            }
+            local namesOn = flags["esp_names"] ~= false
+            objects["name"].Parent = namesOn and objects["holder"] or library.cache
+            do
+                local nc = flag_as_color3("esp_names_rgb") or flag_as_color3("Name_Color")
+                if nc then objects["name"].TextColor3 = nc end
+            end
 
-            for flag,object in temp do 
-                if type(object) == "table" then 
-                    object[1].TextColor3 = flags[flag].Color
-                else 
-                    object.Parent = flags[flag] and objects[ "holder" ] or library.cache
+            local hbOn = flags["esp_hpbar"] ~= false
+            objects["healthbar_holder"].Parent = hbOn and objects["holder"] or library.cache
+
+            local abOn = flags["esp_armorbar"] ~= false
+            objects["armorbar_holder"].Parent = abOn and objects["holder"] or library.cache
+
+            local distOn = flags["esp_dist"] ~= false
+            objects["distance"].Parent = distOn and objects["holder"] or library.cache
+            do
+                local dc = flag_as_color3("esp_dist_rgb") or flag_as_color3("Distance_Color")
+                if dc then objects["distance"].TextColor3 = dc end
+            end
+
+            local wepOn = flags["esp_weapons"] ~= false
+            objects["weapon"].Parent = wepOn and objects["holder"] or library.cache
+            do
+                local wc = flag_as_color3("esp_weapons_rgb") or flag_as_color3("Weapon_Color")
+                if wc then objects["weapon"].TextColor3 = wc end
+            end
+
+            local is_corner = flags["esp_box_corner"] ~= false
+            local is_full = flags["esp_box_full"] ~= false
+            if is_corner or is_full then
+                if is_corner then
+                    objects["corners"].Parent = objects["holder"]
+                    local cr = flag_as_color3("esp_box_corner_rgb") or flag_as_color3("Box_Color") or rgb(255, 255, 255)
+                    for _, corner in objects["corners"]:GetChildren() do
+                        local inner = corner:FindFirstChild("Frame")
+                        if inner then inner.BackgroundColor3 = cr end
+                    end
+                else
+                    objects["corners"].Parent = library.cache
                 end
-            end 
-            
-            local is_corner = flags[ "Box_Type" ] == "Corner"
-
-            if flags["Boxes"] then 
-                if is_corner then 
-                    objects[ "corners" ].Parent = objects["holder"]
-                    objects[ "box_handler" ].Parent = library.cache
-                    objects[ "box_outline" ].Parent = library.cache
-                else 
-                    objects[ "box_handler" ].Parent = objects[ "holder" ]
-                    objects[ "box_outline" ].Parent = objects[ "holder" ]
-                    objects[ "corners" ].Parent = library.cache
-                end 
+                if is_full then
+                    objects["box_handler"].Parent = objects["holder"]
+                    objects["box_outline"].Parent = objects["holder"]
+                    local bc = flag_as_color3("esp_box_full_rgb") or flag_as_color3("Box_Color") or rgb(255, 255, 255)
+                    objects["box_color"].Color = bc
+                else
+                    objects["box_handler"].Parent = library.cache
+                    objects["box_outline"].Parent = library.cache
+                end
             else
-                objects[ "corners" ].Parent =  library.cache
-                objects[ "box_handler" ].Parent = library.cache
-                objects[ "box_outline" ].Parent = library.cache
-            end 
-
-            objects[ "box_color" ].Color = flags["Box_Color"].Color 
-
-            for _, corner in objects[ "corners" ]:GetChildren() do
-                corner.Frame.BackgroundColor3 = flags["Box_Color"].Color
+                objects["corners"].Parent = library.cache
+                objects["box_handler"].Parent = library.cache
+                objects["box_outline"].Parent = library.cache
             end
 
             local hl = objects["preview_highlight"]
             if hl then
-                local hlEnabled = flags["esp_live_highlight"] == true or flags["esp_live_chams"] == true
+                local hlEnabled = flags["esp_opt_highlight"] == true or flags["esp_chams"] == true
+                    or flags["esp_live_highlight"] == true or flags["esp_live_chams"] == true
                 hl.Enabled = hlEnabled
                 local fill = flags["esp_live_hl_fill"]
                 local out = flags["esp_live_hl_out"]
-                if flags["esp_live_chams"] == true then
+                if flags["esp_chams"] == true then
+                    fill = flags["esp_chams_fill_rgb"] or fill
+                    out = flags["esp_chams_outline_rgb"] or out
+                    hl.FillTransparency = 0.2
+                elseif flags["esp_opt_highlight"] == true then
+                    fill = flags["esp_opt_highlight_rgb"] or fill
+                    out = flags["esp_opt_highlight_rgb"] or out
+                    hl.FillTransparency = 0.55
+                elseif flags["esp_live_chams"] == true then
                     fill = flags["esp_live_chams_fill"] or fill
                     out = flags["esp_live_chams_out"] or out
                     hl.FillTransparency = 0.2
                 else
                     hl.FillTransparency = 0.55
                 end
-                if type(fill) == "table" and fill.Color then
-                    hl.FillColor = fill.Color
-                end
-                if type(out) == "table" and out.Color then
-                    hl.OutlineColor = out.Color
-                end
+                local fc = value_as_color3(fill)
+                if fc then hl.FillColor = fc end
+                local oc = value_as_color3(out)
+                if oc then hl.OutlineColor = oc end
             end
         end
+
+        cfg.refresh_elements()
 
         task.spawn(function()
             while true do 
