@@ -2331,6 +2331,19 @@ local config_holder
                     TextSize = 12;
                 });
             --  
+
+            -- Preview highlight (live extras)
+                objects["preview_highlight"] = library:create("Highlight", {
+                    Parent = items.viewportframe,
+                    Name = "preview_highlight",
+                    Enabled = false,
+                    Adornee = character,
+                    DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+                    FillColor = rgb(170, 80, 255),
+                    OutlineColor = rgb(255, 255, 255),
+                    FillTransparency = 0.55,
+                    OutlineTransparency = 0
+                })
         end 
 
         cfg.change_health = function()
@@ -2391,6 +2404,20 @@ local config_holder
 
             for _, corner in objects[ "corners" ]:GetChildren() do
                 corner.Frame.BackgroundColor3 = flags["Box_Color"].Color
+            end
+
+            local hl = objects["preview_highlight"]
+            if hl then
+                local hlEnabled = flags["esp_live_highlight"] == true
+                hl.Enabled = hlEnabled
+                local fill = flags["esp_live_hl_fill"]
+                local out = flags["esp_live_hl_out"]
+                if type(fill) == "table" and fill.Color then
+                    hl.FillColor = fill.Color
+                end
+                if type(out) == "table" and out.Color then
+                    hl.OutlineColor = out.Color
+                end
             end
         end
 
@@ -2923,20 +2950,124 @@ local config_holder
                     BorderSizePixel = 0
                 })
 
-                local left_elements = library:create("Frame", {
+                local left_outline = library:create("Frame", {
                     Parent = left_column,
+                    Name = "left_outline",
+                    Size = dim2(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.outline
+                }) library:apply_theme(left_outline, "outline", "BackgroundColor3")
+
+                local left_inline = library:create("Frame", {
+                    Parent = left_outline,
+                    Name = "left_inline",
+                    Position = dim2(0, 1, 0, 1),
+                    Size = dim2(1, -2, 1, -2),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.inline
+                }) library:apply_theme(left_inline, "inline", "BackgroundColor3")
+
+                local left_background = library:create("Frame", {
+                    Parent = left_inline,
+                    Name = "left_background",
+                    Position = dim2(0, 1, 0, 1),
+                    Size = dim2(1, -2, 1, -2),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = rgb(255, 255, 255)
+                })
+
+                local left_contrast = library:create("UIGradient", {
+                    Parent = left_background,
+                    Name = "",
+                    Rotation = 90,
+                    Color = rgbseq{rgbkey(0, rgb(41, 41, 55)), rgbkey(1, rgb(35, 35, 47))}
+                }) library:apply_theme(left_contrast, "contrast", "Color")
+
+                local left_accent = library:create("Frame", {
+                    Parent = left_background,
+                    Name = "left_accent",
+                    Size = dim2(1, 0, 0, 2),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.accent
+                }) library:apply_theme(left_accent, "accent", "BackgroundColor3")
+
+                library:create("UIGradient", {
+                    Parent = left_accent,
+                    Name = "",
+                    Rotation = 90,
+                    Color = rgbseq{rgbkey(0, rgb(255, 255, 255)), rgbkey(1, rgb(167, 167, 167))}
+                })
+
+                local left_elements = library:create("Frame", {
+                    Parent = left_background,
                     Name = "left_elements",
                     BorderColor3 = rgb(0, 0, 0),
+                    Position = dim2(0, 0, 0, 4),
                     Size = dim2(1, 0, 0, 0),
                     AutomaticSize = Enum.AutomaticSize.Y,
                     BorderSizePixel = 0,
                     BackgroundTransparency = 1
                 })
 
-                local right_elements = library:create("Frame", {
+                local right_outline = library:create("Frame", {
                     Parent = right_column,
+                    Name = "right_outline",
+                    Size = dim2(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.outline
+                }) library:apply_theme(right_outline, "outline", "BackgroundColor3")
+
+                local right_inline = library:create("Frame", {
+                    Parent = right_outline,
+                    Name = "right_inline",
+                    Position = dim2(0, 1, 0, 1),
+                    Size = dim2(1, -2, 1, -2),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.inline
+                }) library:apply_theme(right_inline, "inline", "BackgroundColor3")
+
+                local right_background = library:create("Frame", {
+                    Parent = right_inline,
+                    Name = "right_background",
+                    Position = dim2(0, 1, 0, 1),
+                    Size = dim2(1, -2, 1, -2),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = rgb(255, 255, 255)
+                })
+
+                local right_contrast = library:create("UIGradient", {
+                    Parent = right_background,
+                    Name = "",
+                    Rotation = 90,
+                    Color = rgbseq{rgbkey(0, rgb(41, 41, 55)), rgbkey(1, rgb(35, 35, 47))}
+                }) library:apply_theme(right_contrast, "contrast", "Color")
+
+                local right_accent = library:create("Frame", {
+                    Parent = right_background,
+                    Name = "right_accent",
+                    Size = dim2(1, 0, 0, 2),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = themes.preset.accent
+                }) library:apply_theme(right_accent, "accent", "BackgroundColor3")
+
+                library:create("UIGradient", {
+                    Parent = right_accent,
+                    Name = "",
+                    Rotation = 90,
+                    Color = rgbseq{rgbkey(0, rgb(255, 255, 255)), rgbkey(1, rgb(167, 167, 167))}
+                })
+
+                local right_elements = library:create("Frame", {
+                    Parent = right_background,
                     Name = "right_elements",
                     BorderColor3 = rgb(0, 0, 0),
+                    Position = dim2(0, 0, 0, 4),
                     Size = dim2(1, 0, 0, 0),
                     AutomaticSize = Enum.AutomaticSize.Y,
                     BorderSizePixel = 0,
