@@ -2295,6 +2295,27 @@ local config_holder
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
             -- 
+            -- Armorbar
+                objects[ "armorbar_holder" ] = library:create( "Frame" , {
+                    Parent = library.cache;
+                    Name = "\0";
+                    Position = dim2(1, 1, 0, 0);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Size = dim2(0, 4, 1, 0);
+                    BorderSizePixel = 0;
+                    BackgroundColor3 = rgb(0, 0, 0)
+                });
+                
+                objects[ "armorbar" ] = library:create( "Frame" , {
+                    Parent = objects[ "armorbar_holder" ];
+                    Name = "\0";
+                    Position = dim2(0, 1, 0, 1);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Size = dim2(1, -2, 1, -2);
+                    BorderSizePixel = 0;
+                    BackgroundColor3 = rgb(100, 170, 255)
+                });
+            --
 
             -- Distance esp
                 objects[ "distance" ] = library:create( "TextLabel" , {
@@ -2355,10 +2376,16 @@ local config_holder
             
             local multiplier = humanoid.MaxHealth * math.abs(math.sin(tick() * 2)) / humanoid.MaxHealth
             local color = flags[ "Health_Low" ].Color:Lerp( flags["Health_High"].Color, multiplier)
+            local armorMul = (math.sin(tick() * 1.6) + 1) / 2
+            local armorLow = (flags["Armor_Low"] and flags["Armor_Low"].Color) or rgb(25, 55, 120)
+            local armorHigh = (flags["Armor_High"] and flags["Armor_High"].Color) or rgb(90, 180, 255)
             
             objects[ "healthbar" ].Size = UDim2.new(1, -2, multiplier, -2)
             objects[ "healthbar" ].Position = UDim2.new(0, 1, 1 - multiplier, 1)
             objects[ "healthbar" ].BackgroundColor3 = color
+            objects[ "armorbar" ].Size = UDim2.new(1, -2, armorMul, -2)
+            objects[ "armorbar" ].Position = UDim2.new(0, 1, 1 - armorMul, 1)
+            objects[ "armorbar" ].BackgroundColor3 = armorLow:Lerp(armorHigh, armorMul)
         end -- wtf why diff func defining
 
         function cfg.refresh_elements( )                                
@@ -2368,6 +2395,7 @@ local config_holder
                 ["Names"] = objects["name"]; 
                 ["Name_Color"] = {objects["name"]};
                 ["Healthbar"] = objects[ "healthbar_holder" ];
+                ["Armorbar"] = objects[ "armorbar_holder" ];
                 ["Distance"] = objects[ "distance" ];
                 ["Weapon"] = objects[ "weapon" ];
                 ["Distance_Color"] = {objects[ "distance" ]};
@@ -2408,10 +2436,17 @@ local config_holder
 
             local hl = objects["preview_highlight"]
             if hl then
-                local hlEnabled = flags["esp_live_highlight"] == true
+                local hlEnabled = flags["esp_live_highlight"] == true or flags["esp_live_chams"] == true
                 hl.Enabled = hlEnabled
                 local fill = flags["esp_live_hl_fill"]
                 local out = flags["esp_live_hl_out"]
+                if flags["esp_live_chams"] == true then
+                    fill = flags["esp_live_chams_fill"] or fill
+                    out = flags["esp_live_chams_out"] or out
+                    hl.FillTransparency = 0.2
+                else
+                    hl.FillTransparency = 0.55
+                end
                 if type(fill) == "table" and fill.Color then
                     hl.FillColor = fill.Color
                 end
