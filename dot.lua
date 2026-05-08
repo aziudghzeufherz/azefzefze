@@ -2426,6 +2426,13 @@ local config_holder
                 })
         end 
 
+        cfg._preview_orig = {}
+        for _, d in ipairs(character:GetDescendants()) do
+            if d:IsA("BasePart") then
+                cfg._preview_orig[d] = { Material = d.Material, Color = d.Color, Transparency = d.Transparency }
+            end
+        end
+
         cfg.change_health = function()
             if flags["esp_hpbar"] == false then return end
             if objects["healthbar_holder"].Parent ~= objects["holder"] then return end
@@ -2516,32 +2523,59 @@ local config_holder
                 objects["box_outline"].Parent = library.cache
             end
 
+            local useBodyChams = flags["esp_chams"] == true or flags["esp_live_chams"] == true
+
             local hl = objects["preview_highlight"]
             if hl then
-                local hlEnabled = flags["esp_opt_highlight"] == true or flags["esp_chams"] == true
-                    or flags["esp_live_highlight"] == true or flags["esp_live_chams"] == true
-                hl.Enabled = hlEnabled
-                local fill = flags["esp_live_hl_fill"]
-                local out = flags["esp_live_hl_out"]
-                if flags["esp_chams"] == true then
-                    fill = flags["esp_chams_fill_rgb"] or fill
-                    out = flags["esp_chams_outline_rgb"] or out
-                    hl.FillTransparency = 0.2
-                elseif flags["esp_opt_highlight"] == true then
-                    fill = flags["esp_opt_highlight_rgb"] or fill
-                    out = flags["esp_opt_highlight_rgb"] or out
-                    hl.FillTransparency = 0.55
-                elseif flags["esp_live_chams"] == true then
-                    fill = flags["esp_live_chams_fill"] or fill
-                    out = flags["esp_live_chams_out"] or out
-                    hl.FillTransparency = 0.2
-                else
-                    hl.FillTransparency = 0.55
+                local hlWanted = flags["esp_opt_highlight"] == true or flags["esp_live_highlight"] == true
+                hl.Enabled = hlWanted and not useBodyChams
+                if hl.Enabled then
+                    local fill = flags["esp_live_hl_fill"]
+                    local out = flags["esp_live_hl_out"]
+                    if flags["esp_opt_highlight"] == true then
+                        fill = flags["esp_opt_highlight_rgb"] or fill
+                        out = flags["esp_opt_highlight_rgb"] or out
+                        hl.FillTransparency = 0.55
+                    elseif flags["esp_live_highlight"] == true then
+                        fill = flags["esp_live_hl_fill"] or fill
+                        out = flags["esp_live_hl_out"] or out
+                        hl.FillTransparency = 0.45
+                    else
+                        hl.FillTransparency = 0.55
+                    end
+                    local fc = value_as_color3(fill)
+                    if fc then hl.FillColor = fc end
+                    local oc = value_as_color3(out)
+                    if oc then hl.OutlineColor = oc end
                 end
-                local fc = value_as_color3(fill)
-                if fc then hl.FillColor = fc end
-                local oc = value_as_color3(out)
-                if oc then hl.OutlineColor = oc end
+            end
+
+            local orig = cfg._preview_orig
+            if orig then
+                if useBodyChams then
+                    for part, o in pairs(orig) do
+                        if typeof(part) == "Instance" and part:IsA("BasePart") and part.Parent then
+                            part.Material = Enum.Material.ForceField
+                            local c = flag_as_color3("esp_chams_fill_rgb")
+                            if not c then
+                                c = value_as_color3(flags["esp_live_chams_fill"])
+                            end
+                            c = c or rgb(119, 120, 255)
+                            part.Color = c
+                            local a = flags["esp_chams_fill_alpha"]
+                            if type(a) ~= "number" then a = 100 end
+                            part.Transparency = math.clamp(1 - (a / 100), 0, 1)
+                        end
+                    end
+                else
+                    for part, o in pairs(orig) do
+                        if typeof(part) == "Instance" and part:IsA("BasePart") and part.Parent then
+                            part.Material = o.Material
+                            part.Color = o.Color
+                            part.Transparency = o.Transparency
+                        end
+                    end
+                end
             end
         end
 
